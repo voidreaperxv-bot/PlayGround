@@ -2,15 +2,23 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 const canvas = document.querySelector('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth < 800 ? 1.35 : 1.8));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x91b3c0);
-scene.fog = new THREE.FogExp2(0x9bb7bd, 0.00165);
+scene.background = new THREE.Color(0x8299a5);
+scene.fog = new THREE.FogExp2(0x9da7a4, 0.00135);
+const skyCanvas=document.createElement('canvas');skyCanvas.width=8;skyCanvas.height=256;
+const skyContext=skyCanvas.getContext('2d');
+const skyGradient=skyContext.createLinearGradient(0,0,0,256);
+skyGradient.addColorStop(0,'#243c5a');skyGradient.addColorStop(.42,'#52778a');skyGradient.addColorStop(.72,'#e1a47d');skyGradient.addColorStop(1,'#e4c39a');
+skyContext.fillStyle=skyGradient;skyContext.fillRect(0,0,8,256);
+const skyTexture=new THREE.CanvasTexture(skyCanvas);skyTexture.colorSpace=THREE.SRGBColorSpace;
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(850,24,16),new THREE.MeshBasicMaterial({map:skyTexture,side:THREE.BackSide,depthWrite:false,fog:false}));
+skyDome.frustumCulled=false;skyDome.renderOrder=-100;scene.add(skyDome);
 const camera = new THREE.PerspectiveCamera(54, 1, 0.1, 900);
 const clock = new THREE.Clock();
 const world = new THREE.Group(); scene.add(world);
@@ -35,15 +43,23 @@ function makeBuilding(x,z,w,d,h,seed){
   // Recessed, colored window strips give every facade a designed, non-cubemap look.
   const rows=Math.max(2,Math.floor((h-5)/4.3)); const cols=Math.max(2,Math.floor(w/4.2));
   const windowMat=mat([0x38545c,0x557078,0x3e5960][Math.floor(rng(seed+5)*3)],.27,.12);
+  const warmWindow=mat(0xd79c5a,.3,.08);warmWindow.emissive.setHex(0x9a5420);warmWindow.emissiveIntensity=.38;
   const trimMat=mat(0xe4ddca,.65);
   for(let row=0;row<rows;row++) for(let col=0;col<cols;col++){
     const yy=3.1+row*4.15, xx=x-w/2+2.2+col*((w-4.4)/Math.max(1,cols-1));
     if(yy>h-1)continue;
     const ww=Math.min(1.65,(w-3)/cols*.6), wh=1.6;
-    box(ww,wh,.12,windowMat,world,[xx,yy,z+d/2+.065],false);
+    const lit=rng(seed+row*31+col*13)>.76, pane=lit?warmWindow:windowMat;
+    box(ww,wh,.12,pane,world,[xx,yy,z+d/2+.065],false);
     box(.07,wh+.16,.15,trimMat,world,[xx,yy,z+d/2+.14],false);
     if(rng(seed+row*31+col*13)>.55)box(ww,.08,.16,trimMat,world,[xx,yy-wh/2-.06,z+d/2+.14],false);
-    box(.12,wh,.08,windowMat,world,[x+w/2+.06,yy,z-d/2+2.1+col*(d-4)/Math.max(cols-1,1)],false);
+    box(.12,wh,.08,rng(seed+row*31+col*13)>.82?warmWindow:windowMat,world,[x+w/2+.06,yy,z-d/2+2.1+col*(d-4)/Math.max(cols-1,1)],false);
+  }
+  // Compact rooftop plant rooms add a more believable skyline without heavy geometry.
+  if(h>27){
+    const unitW=Math.min(5,w*.28),unitD=Math.min(4,d*.24);
+    box(unitW,1.8,unitD,mat(0x626967,.82),world,[x-w*.24,h+1.25,z-d*.22]);
+    box(unitW*.72,.45,unitD*.7,mat(0x858780,.72),world,[x+w*.2,h+.58,z+d*.2]);
   }
   // Awning and lit storefront.
   if(h<25){box(w*.78,2.4,.15,mat(0x38494a),world,[x,2.5,z+d/2+.08],false);box(w*.86,.35,1.2,mat(0xd5a85e),world,[x,4,z+d/2+.52],false);}
@@ -61,10 +77,21 @@ function makeCity(){
   for(let n=-3;n<=3;n++){
     const p=n*70;
     box(15,.12,600,mats.asphalt,world,[p,-.06,0],false); box(600,.12,15,mats.asphalt,world,[0,-.06,p],false);
-    // dashed center lines
+    // Dashed center lines and subtle shoulder markings make lanes easier to read.
     for(let k=-11;k<=11;k++){box(.18,.025,3.3,mats.lane,world,[p,-.0,k*25+12],false);box(3.3,.025,.18,mats.lane,world,[k*25+12,-.0,p],false);}
-    // sidewalks and curb strips
-    for(const side of [-1,1]){box(2,.32,600,mats.sidewalk,world,[p+side*9,-.08,0],false);box(600,.32,2,mats.sidewalk,world,[0,-.08,p+side*9],false);}
+    for(const side of [-1,1]){
+      box(.12,.018,600,mats.lane,world,[p+side*6.6,.005,0],false);
+      box(600,.018,.12,mats.lane,world,[0,.005,p+side*6.6],false);
+      box(2,.32,600,mats.sidewalk,world,[p+side*9,-.08,0],false);box(600,.32,2,mats.sidewalk,world,[0,-.08,p+side*9],false);
+    }
+  }
+  const crossingMat=new THREE.MeshStandardMaterial({color:0xd9d3ba,roughness:.78});
+  for(let ix=-3;ix<=3;ix+=2)for(let iz=-3;iz<=3;iz+=2){
+    const x=ix*70,z=iz*70;
+    for(let stripe=-2;stripe<=2;stripe++){
+      box(1.35,.025,.24,crossingMat,world,[x+stripe*2.35,.018,z-5.65],false);
+      box(.24,.025,1.35,crossingMat,world,[x-5.65,.018,z+stripe*2.35],false);
+    }
   }
   // Urban blocks, with varied setbacks, rooftops, and tiny planted pocket parks.
   for(let ix=-3;ix<3;ix++)for(let iz=-3;iz<3;iz++){
@@ -133,6 +160,7 @@ function createVehicle(def,parent=world){
       for(const z of [-1.34,1.35]){
         const tire=addMesh(new THREE.CylinderGeometry(.39,.39,.25,20),wheelMat,root,[side*(width/2-.02),.55,z]);tire.rotation.z=Math.PI/2;
         const hub=addMesh(new THREE.CylinderGeometry(.2,.2,.27,12),mat(0x929d9d,.24,.8),root,[side*(width/2+.015),.55,z]);hub.rotation.z=Math.PI/2;
+        const rim=addMesh(new THREE.TorusGeometry(.245,.025,8,18),mats.chrome,root,[side*(width/2+.16),.55,z]);rim.rotation.y=Math.PI/2;
       }
       box(.12,.1,.28,paint,root,[side*width*.53,1.32,-.32]);
       box(.08,.07,.5,mats.chrome,root,[side*(width/2),.9,0]);
@@ -186,6 +214,9 @@ const playerDef=catalog[0];
 let player=createVehicle(playerDef);player.position.set(0,.15,0);player.rotation.y=0;
 let activeDef=playerDef, speed=0, cash=2500, started=false, shopOpen=false, toastTimer=0;
 const keys=new Set(), touch=new Set();
+let firstPerson=false;
+let cameraYawOffset=0;
+let cameraPitch=0;
 const $=s=>document.querySelector(s);
 const menu=$('#menu'),hud=$('#hud'),shop=$('#shop'),prompt=$('#shop-prompt');
 function showToast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');toastTimer=2.1;}
@@ -214,24 +245,65 @@ function selectVehicle(def){
 }
 $('#close-shop').addEventListener('click',closeShop);
 $('#map-button').addEventListener('click',()=>showToast(`SUNSET DISTRICT  ·  ${Math.round(player.position.x)} / ${Math.round(player.position.z)}`));
+const cameraModeButton=$('#camera-mode');
+cameraModeButton.addEventListener('click',()=>{
+ firstPerson=!firstPerson;
+ cameraModeButton.textContent=firstPerson?'3P':'1P';
+ cameraModeButton.setAttribute('aria-label',firstPerson?'Switch to third-person camera':'Switch to first-person camera');
+ cameraModeButton.title=firstPerson?'Switch to third-person camera':'Switch to first-person camera';
+ showToast(firstPerson?'FIRST-PERSON VIEW':'THIRD-PERSON VIEW');
+});
+const cameraLook=$('#camera-look');
+let cameraPointer=null,cameraLastX=0,cameraLastY=0;
+cameraLook.addEventListener('pointerdown',e=>{
+ if(cameraPointer!==null||e.pointerType==='mouse'&&e.button!==0)return;
+ cameraPointer=e.pointerId;cameraLastX=e.clientX;cameraLastY=e.clientY;
+ cameraLook.classList.add('dragging');
+ cameraLook.setPointerCapture(e.pointerId);
+});
+cameraLook.addEventListener('pointermove',e=>{
+ if(e.pointerId!==cameraPointer)return;
+ cameraYawOffset-=(e.clientX-cameraLastX)*.0045;
+ cameraPitch=THREE.MathUtils.clamp(cameraPitch-(e.clientY-cameraLastY)*.0035,firstPerson?-.65:-.3,.65);
+ cameraLastX=e.clientX;cameraLastY=e.clientY;
+});
+const endCameraDrag=e=>{
+ if(e.pointerId!==cameraPointer)return;
+ cameraPointer=null;
+ cameraLook.classList.remove('dragging');
+};
+cameraLook.addEventListener('pointerup',endCameraDrag);
+cameraLook.addEventListener('pointercancel',endCameraDrag);
+cameraLook.addEventListener('lostpointercapture',endCameraDrag);
 window.addEventListener('keydown',e=>{
- if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
- keys.add(e.key.toLowerCase());
+ const key=e.key.toLowerCase();
+ if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(key))e.preventDefault();
+ keys.add(key);
  if(e.repeat)return;
- if(e.key==='Escape'&&shopOpen){closeShop();return;}
- if((e.key.toLowerCase()==='e'||e.key==='Enter')&&started){if(shopOpen)closeShop();else if(player.position.distanceTo(new THREE.Vector3(garageX,0,garageZ))<19)openShop();else showToast('THE GARAGE IS MARKED WITH A LIME SIGN');}
- if(e.key==='Escape'&&!started)startGame();
+ if(key==='escape'&&shopOpen){closeShop();return;}
+ if((key==='e'||key==='enter')&&started){if(shopOpen)closeShop();else if(player.position.distanceTo(new THREE.Vector3(garageX,0,garageZ))<19)openShop();else showToast('THE GARAGE IS MARKED WITH A LIME SIGN');}
+ if(key==='escape'&&!started)startGame();
 });
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+const activePointers=new Map();
 for(const btn of document.querySelectorAll('[data-control]')){
  const action=btn.dataset.control;
- const down=e=>{e.preventDefault();touch.add(action);btn.setPointerCapture?.(e.pointerId);};
- const up=e=>{e.preventDefault();touch.delete(action);};
+ const down=e=>{
+  e.preventDefault();
+  if(activePointers.has(e.pointerId))return;
+  activePointers.set(e.pointerId,action);touch.add(action);
+  try{btn.setPointerCapture(e.pointerId);}catch{}
+ };
+ const up=e=>{
+  e.preventDefault();
+  activePointers.delete(e.pointerId);
+  if(![...activePointers.values()].includes(action))touch.delete(action);
+ };
  btn.addEventListener('pointerdown',down);btn.addEventListener('pointerup',up);btn.addEventListener('pointercancel',up);btn.addEventListener('lostpointercapture',up);
 }
-const releaseTouchControls=()=>touch.clear();
-window.addEventListener('blur',releaseTouchControls);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseTouchControls();});
+const releaseControls=()=>{touch.clear();keys.clear();activePointers.clear();cameraPointer=null;cameraLook.classList.remove('dragging');};
+window.addEventListener('blur',releaseControls);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseControls();});
 $('#touch-shop').addEventListener('pointerdown',e=>{e.preventDefault();if(player.position.distanceTo(new THREE.Vector3(garageX,0,garageZ))<19)openShop();else showToast('DRIVE TO THE GARAGE');});
 
 // Ambient cross traffic makes the grid feel inhabited without distracting from driving.
@@ -259,8 +331,10 @@ function updateGame(dt){
  else speed*=Math.max(0,1-(hand?4.8:1.15)*dt);
  if(hand)speed*=Math.max(0,1-2.2*dt);
  if(Math.abs(speed)<.035)speed=0;
- const steering=(right-left),grip=.25+.75*Math.min(1,Math.abs(speed)/4);
- player.rotation.y+=steering*activeDef.handling*grip*dt*Math.sign(speed||1);
+ const steering=right-left;
+ const speedGrip=.2+.8*Math.min(1,Math.abs(speed)/12);
+ const turnRate=activeDef.handling*.55*speedGrip;
+ player.rotation.y+=steering*turnRate*dt*Math.sign(speed||1);
  const previous=player.position.clone();
  player.position.x+=Math.sin(player.rotation.y)*speed*dt;
  player.position.z+=Math.cos(player.rotation.y)*speed*dt;
@@ -274,10 +348,20 @@ function updateGame(dt){
   if(t.lane){t.car.position.x+=t.speed*dt;if(t.car.position.x>230)t.car.position.x=-230;}
   else{t.car.position.z-=t.speed*dt;if(t.car.position.z<-230)t.car.position.z=230;}
  }
- const target=new THREE.Vector3(player.position.x,2.1,player.position.z);
- const behind=new THREE.Vector3(0,5.4,-10.8).applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);
- const desired=player.position.clone().add(behind);desired.y+=Math.min(.7,Math.abs(speed)*.018);
- camera.position.lerp(desired,1-Math.exp(-4.3*dt));cameraTarget.lerp(target.clone().add(new THREE.Vector3(Math.sin(player.rotation.y)*2,0,Math.cos(player.rotation.y)*2)),1-Math.exp(-5*dt));camera.lookAt(cameraTarget);
+ const viewYaw=player.rotation.y+cameraYawOffset;
+ if(firstPerson){
+  const forward=new THREE.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
+  const desired=player.position.clone().add(new THREE.Vector3(0,1.35,0)).addScaledVector(forward,.48);
+  const lookDirection=new THREE.Vector3(Math.sin(viewYaw)*Math.cos(cameraPitch),Math.sin(cameraPitch),Math.cos(viewYaw)*Math.cos(cameraPitch));
+  camera.position.lerp(desired,1-Math.exp(-12*dt));cameraTarget.copy(desired).addScaledVector(lookDirection,12);
+ }else{
+  const horizontal=10.8*Math.cos(.464+cameraPitch),vertical=10.8*Math.sin(.464+cameraPitch);
+  const desired=player.position.clone().add(new THREE.Vector3(-Math.sin(viewYaw)*horizontal,vertical,-Math.cos(viewYaw)*horizontal));
+  desired.y+=Math.min(.7,Math.abs(speed)*.018);
+  const target=player.position.clone().add(new THREE.Vector3(0,1.8,0)).add(new THREE.Vector3(Math.sin(viewYaw)*2,0,Math.cos(viewYaw)*2));
+  camera.position.lerp(desired,1-Math.exp(-4.3*dt));cameraTarget.lerp(target,1-Math.exp(-5*dt));
+ }
+ camera.lookAt(cameraTarget);
  const kmh=Math.round(Math.abs(speed)*3.6);$('#speed').textContent=String(kmh).padStart(3,'0');$('#speed-fill').style.width=`${Math.min(100,kmh/activeDef.speed*100)}%`;
  const garageDistance=player.position.distanceTo(new THREE.Vector3(garageX,0,garageZ));prompt.classList.toggle('hidden',garageDistance>19);
  const district=player.position.z>100?'HARBOR FRONT':player.position.x>90?'PALM HEIGHTS':player.position.z< -100?'OLD TOWN':'SUNSET DISTRICT';$('#district').textContent=district;
