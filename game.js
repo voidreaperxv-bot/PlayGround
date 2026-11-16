@@ -259,7 +259,7 @@ function updateGame(dt){
  else speed*=Math.max(0,1-(hand?4.8:1.15)*dt);
  if(hand)speed*=Math.max(0,1-2.2*dt);
  if(Math.abs(speed)<.035)speed=0;
- const steering=(right-left),grip=Math.min(1,Math.abs(speed)/4);
+ const steering=(right-left),grip=.25+.75*Math.min(1,Math.abs(speed)/4);
  player.rotation.y+=steering*activeDef.handling*grip*dt*Math.sign(speed||1);
  const previous=player.position.clone();
  player.position.x+=Math.sin(player.rotation.y)*speed*dt;
