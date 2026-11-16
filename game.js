@@ -229,6 +229,9 @@ for(const btn of document.querySelectorAll('[data-control]')){
  const up=e=>{e.preventDefault();touch.delete(action);};
  btn.addEventListener('pointerdown',down);btn.addEventListener('pointerup',up);btn.addEventListener('pointercancel',up);btn.addEventListener('lostpointercapture',up);
 }
+const releaseTouchControls=()=>touch.clear();
+window.addEventListener('blur',releaseTouchControls);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseTouchControls();});
 $('#touch-shop').addEventListener('pointerdown',e=>{e.preventDefault();if(player.position.distanceTo(new THREE.Vector3(garageX,0,garageZ))<19)openShop();else showToast('DRIVE TO THE GARAGE');});
 
 // Ambient cross traffic makes the grid feel inhabited without distracting from driving.
