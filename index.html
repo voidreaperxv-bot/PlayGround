@@ -19,17 +19,18 @@
       <div class="menu-top"><div class="brand-mark">NC<span> / </span>01</div><div class="menu-location"><i></i> PACIFIC COAST · 7:42 PM</div></div>
       <div class="hero-copy"><div class="eyebrow"><span></span> OPEN CITY / FREE ROAM</div><h1>NEON<br><em>COAST</em></h1><p>One city. A thousand ways through it.</p>
         <button id="start-button" class="start-button"><span>START DRIVING</span><b>↗</b></button>
-        <div class="menu-hint">TOUCH CONTROLS <span>or</span> W A S D <span>·</span> DRIVE</div>
+        <div class="menu-hint">ARROWS <span>/</span> W A S D <span>·</span> DRIVE</div>
       </div>
       <div class="menu-footer"><span>01 / SUNSET DISTRICT</span><span>FREE ROAM EXPERIENCE</span><span>© NC MOTOR CLUB</span></div>
       <div class="menu-watermark">COAST</div>
     </section>
     <section id="hud" class="hud hidden">
-      <div class="hud-top"><div class="hud-brand">NC<span> / </span>01</div><div class="hud-location"><span class="live-dot"></span><span id="district">SUNSET DISTRICT</span><small>NEON COAST</small></div><button id="map-button" class="icon-button" title="Map">⌖</button></div>
+      <div id="camera-look" class="camera-look" aria-hidden="true"></div>
+      <div class="hud-top"><div class="hud-brand">NC<span> / </span>01</div><div class="hud-location"><span class="live-dot"></span><span id="district">SUNSET DISTRICT</span><small>NEON COAST</small></div><button id="camera-mode" class="icon-button camera-mode" type="button" title="Switch to first-person camera" aria-label="Switch to first-person camera">1P</button><button id="map-button" class="icon-button" title="Map">⌖</button></div>
       <div class="speed-card"><div class="speed-line"><strong id="speed">000</strong><span>KM/H</span></div><div class="speed-track"><i id="speed-fill"></i></div><div class="vehicle-name" id="vehicle-name">COUPE · STREET</div></div>
       <div class="mission-card"><div class="mission-icon">✦</div><div><small>FREE ROAM</small><strong id="objective">Find the garage</strong><span>Explore the city and pick your ride</span></div></div>
       <div class="cash-card"><span>WALLET</span><strong>$<b id="cash">2,500</b></strong></div>
-      <div class="controls-legend"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>DRIVE</span><kbd>SPACE</kbd><span>HANDBRAKE</span><kbd>E</kbd><span>SHOP</span></div>
+      <div class="controls-legend"><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd><span>DRIVE</span><kbd>SPACE</kbd><span>HANDBRAKE</span><kbd>E</kbd><span>SHOP</span></div>
       <div id="shop-prompt" class="shop-prompt hidden"><span>✦</span> PRESS <kbd>E</kbd> TO BROWSE GARAGE</div>
       <div id="toast" class="toast"></div>
       <div id="touch-controls" class="touch-controls">
